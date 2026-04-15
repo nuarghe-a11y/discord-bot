@@ -1,5 +1,9 @@
 const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
-const { createOrUpdatePlayerProfile, getStoredGangNames, updateGangOverviewMessage } = require('../utils/gangs');
+const {
+  createOrUpdatePlayerProfile,
+  getStoredGangNames,
+  updateGangOverviewMessage,
+} = require('../utils/gangs');
 const { hasPermission } = require('../utils/permissions');
 
 module.exports = {
@@ -48,7 +52,9 @@ module.exports = {
       const photo = interaction.options.getAttachment('foto', false);
 
       const gangs = await getStoredGangNames(interaction.guild);
-      const matchedGang = gangs.find((name) => name.toLowerCase() === gangName.toLowerCase());
+      const matchedGang = gangs.find(
+        (name) => name.toLowerCase() === gangName.toLowerCase()
+      );
 
       if (!matchedGang) {
         return interaction.editReply({
@@ -56,11 +62,16 @@ module.exports = {
         });
       }
 
+      const photoUrl =
+        photo && photo.contentType && photo.contentType.startsWith('image/')
+          ? (photo.proxyURL || photo.url)
+          : '';
+
       const result = await createOrUpdatePlayerProfile(interaction.guild, {
         playerName,
         gangName: matchedGang,
         roleName,
-        photoUrl: photo?.url || '',
+        photoUrl,
       });
 
       if (!result.ok) {

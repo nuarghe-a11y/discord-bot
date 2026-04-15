@@ -178,7 +178,7 @@ function buildGangOverviewEmbed(guild, gangMap) {
 }
 
 async function findExistingGangOverviewMessage(channel) {
-  const messages = await channel.messages.fetch({ limit: 50 }).catch(() => null);
+  const messages = await channel.messages.fetch({ limit: 10 }).catch(() => null);
   if (!messages) return null;
 
   return (
@@ -245,10 +245,12 @@ async function createOrUpdatePlayerProfile(guild, { playerName, gangName, roleNa
     .setFooter({ text: 'Mano Segreta • Spelerprofiel' })
     .setTimestamp();
 
+  if (LOGO_URL) {
+    embed.setThumbnail(LOGO_URL);
+  }
+
   if (photoUrl) {
     embed.setImage(photoUrl);
-  } else if (LOGO_URL) {
-    embed.setThumbnail(LOGO_URL);
   }
 
   const messages = await profileChannel.messages.fetch({ limit: 20 }).catch(() => null);
