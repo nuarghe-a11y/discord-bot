@@ -33,47 +33,53 @@ module.exports = {
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
 
   async execute(interaction) {
-    if (!hasPermission(interaction.member, PermissionFlagsBits.ManageGuild)) {
-      return interaction.reply({
-        content: 'Je hebt geen permissie om dit command te gebruiken.',
-        ephemeral: true,
+    await interaction.deferReply({ ephemeral: true });
+
+    try {
+      if (!hasPermission(interaction.member, PermissionFlagsBits.ManageGuild)) {
+        return interaction.editReply({
+          content: 'Je hebt geen permissie om dit command te gebruiken.',
+        });
+      }
+
+      const playerName = interaction.options.getString('naam', true).trim();
+      const gangName = interaction.options.getString('gang', true).trim();
+      const roleName = interaction.options.getString('rol', true).trim();
+      const photo = interaction.options.getAttachment('foto', false);
+
+      const gangs = await getStoredGangNames(interaction.guild);
+      const matchedGang = gangs.find((name) => name.toLowerCase() === gangName.toLowerCase());
+
+      if (!matchedGang) {
+        return interaction.editReply({
+          content: 'Deze gang bestaat nog niet. Voeg hem eerst toe met /vg.',
+        });
+      }
+
+      const result = await createOrUpdatePlayerProfile(interaction.guild, {
+        playerName,
+        gangName: matchedGang,
+        roleName,
+        photoUrl: photo?.url || '',
       });
-    }
 
-    const playerName = interaction.options.getString('naam', true).trim();
-    const gangName = interaction.options.getString('gang', true).trim();
-    const roleName = interaction.options.getString('rol', true).trim();
-    const photo = interaction.options.getAttachment('foto', false);
+      if (!result.ok) {
+        return interaction.editReply({
+          content: 'De profielcategorie kon niet worden gevonden.',
+        });
+      }
 
-    const gangs = await getStoredGangNames(interaction.guild);
-    const matchedGang = gangs.find((name) => name.toLowerCase() === gangName.toLowerCase());
+      await updateGangOverviewMessage(interaction.guild);
 
-    if (!matchedGang) {
-      return interaction.reply({
-        content: 'Deze gang bestaat nog niet. Voeg hem eerst toe met /vg.',
-        ephemeral: true,
+      return interaction.editReply({
+        content: `Speler toegevoegd of bijgewerkt: **${playerName}** in **${matchedGang}**. Profiel: ${result.channel}`,
       });
+    } catch (error) {
+      console.error('Fout in /vs:', error);
+
+      return interaction.editReply({
+        content: 'Er ging iets mis bij het toevoegen van de speler.',
+      }).catch(() => null);
     }
-
-    const result = await createOrUpdatePlayerProfile(interaction.guild, {
-      playerName,
-      gangName: matchedGang,
-      roleName,
-      photoUrl: photo?.url || '',
-    });
-
-    if (!result.ok) {
-      return interaction.reply({
-        content: 'De profielcategorie kon niet worden gevonden.',
-        ephemeral: true,
-      });
-    }
-
-    await updateGangOverviewMessage(interaction.guild);
-
-    return interaction.reply({
-      content: `Speler toegevoegd of bijgewerkt: **${playerName}** in **${matchedGang}**. Profiel: ${result.channel}`,
-      ephemeral: true,
-    });
   },
 };
